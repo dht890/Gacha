@@ -23,51 +23,6 @@ my-app/
 
 ---
 
-## 🚀 Getting Started
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/yourusername/fullstack-desktop-app.git
-cd fullstack-desktop-app
-```
-
----
-
-### 2. Set Up the Frontend (React + Tailwind)
-
-```bash
-cd frontend
-npm install
-npm run dev   # Use `npm run build` for production
-```
-
----
-
-### 3. Set Up the Backend (Flask + MongoDB)
-
-```bash
-cd ../backend
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-python app.py
-```
-
-> Make sure MongoDB is running (default: `mongodb://localhost:27017`)
-
----
-
-### 4. Launch Electron App
-
-```bash
-cd ..
-npm install        # installs Electron if not already
-npx electron .
-```
-
----
-
 ## 🔁 Git Workflow
 
 ### Daily development
