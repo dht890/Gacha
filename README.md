@@ -46,13 +46,13 @@ git add .
 git commit -m "Add feature"
 git push origin feature/your-feature-name
 
-Open Pull Request and Merge the PR 
+#Open Pull Request and Merge the PR 
 git checkout main
 git pull origin main
 git merge feature/your-feature-name
 git push origin main
 
-Delete the Feature Branch
+#Delete the Feature Branch
 
 git pull origin main
 
