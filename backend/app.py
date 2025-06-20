@@ -11,3 +11,5 @@ cards = db.cards
 profiles = db.profiles
 chests = db.chests
 user_collections = db.user_collections
+
+#ToDo: create a new profile
