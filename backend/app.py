@@ -4,6 +4,7 @@ from database import Database
 from models import Profile, UserCollection, Card, Chest
 from config import CARDS_COLLECTION, CHESTS_COLLECTION, USER_COLLECTIONS_COLLECTION, PROFILES_COLLECTION
 from schema import setup_database, fetch_clash_royale_cards, transform_clash_royale_card
+from bson import ObjectId
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -20,6 +21,89 @@ cards = db.get_collection(CARDS_COLLECTION)
 profiles = db.get_collection(PROFILES_COLLECTION)
 chests = db.get_collection(CHESTS_COLLECTION)
 user_collections = db.get_collection(USER_COLLECTIONS_COLLECTION)
+
+def get_or_create_profile():
+    """Get the local profile or create it if it doesn't exist"""
+    profile = profiles.find_one({})  # Get any profile since we'll only have one
+    
+    if not profile:
+        print("Creating local profile...")
+        # Get all cards from the database
+        all_cards = list(cards.find())
+        
+        if not all_cards:
+            raise ValueError("No cards found in the database. Please ensure the database is properly initialized.")
+        
+        # Create a new profile
+        new_profile = {
+            "username": "LocalPlayer",
+            "xp_lvl": 1,
+            "pfp": "default.png"
+        }
+        
+        # Insert the profile into the database
+        profile_result = profiles.insert_one(new_profile)
+        
+        # Create user collection entries for each card
+        user_card_collection = []
+        for card in all_cards:
+            collection_entry = {
+                "_id": str(ObjectId()),  # Generate a new unique ID for each card in the collection
+                "profile_id": str(profile_result.inserted_id),  # Link to the profile
+                "card_id": str(card["_id"]),
+                "unlocked": False,
+                "level": 1,
+                "copiesOwned": 0
+            }
+            user_card_collection.append(collection_entry)
+        
+        # Insert the collection into the database
+        user_collections.insert_many(user_card_collection)
+        print("Local profile created successfully")
+        
+        profile = profiles.find_one({"_id": profile_result.inserted_id})
+    
+    return profile
+
+@app.route('/', methods=['GET'])
+def home():
+    return jsonify({"message": "Welcome to the Clash Royale Card Game API"}), 200
+
+@app.route('/api/profile', methods=['GET'])
+def get_profile():
+    try:
+        profile = get_or_create_profile()
+        
+        # Convert ObjectId to string for JSON serialization
+        profile_id = str(profile['_id'])
+        profile['_id'] = profile_id
+        
+        # Get user's card collection
+        user_card_collection = list(user_collections.find({"profile_id": profile_id}))
+        
+        # Convert ObjectIds and add card details
+        for card in user_card_collection:
+            if '_id' in card:
+                card['_id'] = str(card['_id'])
+            if 'profile_id' in card:
+                card['profile_id'] = str(card['profile_id'])
+            if 'card_id' in card:
+                card['card_id'] = str(card['card_id'])
+                
+                # Get card details
+                card_details = cards.find_one({"_id": card["card_id"]})
+                if card_details:
+                    card["name"] = card_details.get("name")
+                    card["rarity"] = card_details.get("rarity")
+                    card["icon"] = card_details.get("icon")
+                    card["cost"] = card_details.get("cost")
+        
+        # Add collection to profile response
+        profile['collection'] = user_card_collection
+        
+        return jsonify(profile), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 @app.route('/api/cards/refresh', methods=['POST'])
 def refresh_cards():
@@ -38,39 +122,6 @@ def refresh_cards():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-@app.route('/api/profile/<username>', methods=['GET'])
-def get_profile(username):
-    try:
-        profile = profiles.find_one({"username": username})
-        if profile:
-            # Convert ObjectId to string for JSON serialization
-            profile['_id'] = str(profile['_id'])
-            
-            # Convert ObjectIds in the collection
-            for card in profile.get('collection', []):
-                if '_id' in card:
-                    card['_id'] = str(card['_id'])
-                if 'card_id' in card:
-                    card['card_id'] = str(card['card_id'])
-            
-            return jsonify(profile), 200
-        else:
-            return jsonify({"error": "Profile not found"}), 404
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
-
-@app.route('/api/profile', methods=['POST'])
-def create_profile():
-    data = request.json
-    username = data.get('username')
-    pfp = data.get('pfp', 'default.png')
-    
-    try:
-        create_new_profile(username, pfp)
-        return jsonify({"message": "Profile created successfully"}), 201
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
-
 @app.route('/api/cards', methods=['GET'])
 def get_cards():
     try:
@@ -82,41 +133,9 @@ def get_cards():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-def create_new_profile(username, pfp="default.png"):
-    """Create a new user profile with an empty card collection"""
-    # Get all cards from the database
-    all_cards = list(cards.find())
-    
-    if not all_cards:
-        raise ValueError("No cards found in the database. Please ensure the database is properly initialized.")
-    
-    # Create user collection entries for each card
-    user_card_collection = []
-    for card in all_cards:
-        collection_entry = {
-            "card_id": str(card["_id"]),
-            "unlocked": False,
-            "level": 1,
-            "copiesOwned": 0
-        }
-        user_card_collection.append(collection_entry)
-    
-    # Insert the collection into the database
-    collection_result = user_collections.insert_many(user_card_collection)
-    
-    # Create a new profile with the collection
-    new_profile = {
-        "id": "1",  # You might want to generate this dynamically
-        "username": username,
-        "xp_lvl": 1,
-        "pfp": pfp,
-        "collection": user_card_collection
-    }
-    
-    # Insert the profile into the database
-    profiles.insert_one(new_profile)
-    print("Profile created successfully")
-
 if __name__ == "__main__":
+    # Initialize database schema
+    setup_database()
+    # Ensure we have a local profile
+    get_or_create_profile()
     app.run(debug=True, port=5000)
-

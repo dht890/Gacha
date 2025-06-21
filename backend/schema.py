@@ -82,17 +82,11 @@ def setup_database():
             print("Cards successfully inserted into database")
         else:
             print("Warning: No cards fetched from Clash Royale API")
-    else:
-        print("Cards collection already exists")
 
-    if CHESTS_COLLECTION not in db.list_collection_names():
-        db.create_collection(CHESTS_COLLECTION)
-
-    if USER_COLLECTIONS_COLLECTION not in db.list_collection_names():
-        db.create_collection(USER_COLLECTIONS_COLLECTION)
-
-    if PROFILES_COLLECTION not in db.list_collection_names():
-        db.create_collection(PROFILES_COLLECTION)
+    # Create other collections if they don't exist
+    for collection in [CHESTS_COLLECTION, USER_COLLECTIONS_COLLECTION, PROFILES_COLLECTION]:
+        if collection not in db.list_collection_names():
+            db.create_collection(collection)
 
     # Apply validators
     apply_card_collection_validator(db)
@@ -161,8 +155,10 @@ def apply_user_collection_validator(db):
         "validator": {
             "$jsonSchema": {
                 "bsonType": "object",
-                "required": ["card_id", "unlocked", "level", "copiesOwned"],
+                "required": ["_id", "profile_id", "card_id", "unlocked", "level", "copiesOwned"],
                 "properties": {
+                    "_id": {"bsonType": "string"},
+                    "profile_id": {"bsonType": "string"},
                     "card_id": {"bsonType": "string"},
                     "unlocked": {"bsonType": "bool"},
                     "level": {
@@ -185,9 +181,8 @@ def apply_profile_collection_validator(db):
         "validator": {
             "$jsonSchema": {
                 "bsonType": "object",
-                "required": ["id", "username", "xp_lvl"],
+                "required": ["username", "xp_lvl"],
                 "properties": {
-                    "id": {"bsonType": "string"},
                     "username": {"bsonType": "string"},
                     "xp_lvl": {
                         "bsonType": "int",
