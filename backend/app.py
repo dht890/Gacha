@@ -1,15 +1,18 @@
 from database import Database
 from models import Profile, UserCollection, Card, Chest
 from config import CARDS_COLLECTION, CHESTS_COLLECTION, USER_COLLECTIONS_COLLECTION, PROFILES_COLLECTION
-from pymongo.errors import DuplicateKeyError
+from schema import setup_database
 
-#how to access the database
-db = Database().client.game
+# Initialize database schema
+setup_database()
 
-#how to access a collection
-cards = db.cards
-profiles = db.profiles
-chests = db.chests
-user_collections = db.user_collections
+# Get database instance
+db = Database().db
 
-#ToDo: create a new profile
+# Get collections
+cards = db.get_collection(CARDS_COLLECTION)
+profiles = db.get_collection(PROFILES_COLLECTION)
+chests = db.get_collection(CHESTS_COLLECTION)
+user_collections = db.get_collection(USER_COLLECTIONS_COLLECTION)
+
+# Your application routes and logic will go here...

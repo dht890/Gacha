@@ -27,3 +27,20 @@ class Profile:
         """Create unique indexes for the profile collection"""
         db.get_collection('profiles').create_index('id', unique=True)
         db.get_collection('profiles').create_index('username', unique=True) 
+
+    def validate(self):
+        if not isinstance(self.id, str) or not self.id:
+            raise ValueError("Profile ID must be a non-empty string.")
+        
+        if not isinstance(self.username, str) or not self.username:
+            raise ValueError("Username must be a non-empty string.")
+        
+        if not isinstance(self.xp_lvl, int) or self.xp_lvl < 1:
+            raise ValueError("XP level must be a positive integer.")
+        
+        if self.pfp and not isinstance(self.pfp, str):
+            raise ValueError("Profile picture must be a string (e.g., URL or filename).")
+        
+        if self.pfp and not self.pfp.endswith(('.jpg', '.jpeg', '.png', '.gif')):
+            raise ValueError("Profile picture must be a valid image file.")
+        
